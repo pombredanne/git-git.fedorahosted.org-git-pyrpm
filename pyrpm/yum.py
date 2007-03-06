@@ -404,27 +404,22 @@ class RpmYum:
             self.lockfile = None
         return 1
 
-    def install(self, name):
-        pkglist = self.__findPkgs(name)
+    def install(self, name, exact=False):
+        pkglist = self.__findPkgs(name, exact)
         ret = self.__handleBestPkg("install", pkglist)
-        if self.has_args and not ret:
-            log.info1("No match for argument: %s", name)
         return ret
 
-    def groupInstall(self, name):
+    def groupInstall(self, name, exact=False):
         args = self.getGroupPackages(name)
         ret = 0
         for pkgname in args:
-            ret |= self.install(pkgname)
+            ret |= self.install(pkgname, exact)
         return ret
 
     def update(self, name, exact=False, do_obsolete=True):
         # First find all matching packages. Remember, name can be a glob, too,
         # so we might get a list of packages with different names.
-        if exact:
-            pkglist = self.repos.getPkgsByName(name)
-        else:
-            pkglist = self.__findPkgs(name)
+        pkglist = self.__findPkgs(name, exact)
         # Next we generate two temporary hashes. One with just a list of
         # packages for each name and a second with a subhash for each package
         # for each arch. Both are needed for speed reasons. The first one for
@@ -527,8 +522,6 @@ class RpmYum:
                 # Trick to avoid multiple adds for same arch, after handling
                 # it once we clear the update package list.
                 pkgnamearchhash[name][arch] = []
-        if self.has_args and not ret:
-            log.info1("No match for argument: %s", name)
         return ret
 
     def _filterPkgVersion(self, pkg, pkglist):
@@ -538,24 +531,26 @@ class RpmYum:
                 l.append(p)
         return l
 
-    def groupUpdate(self, name):
+    def groupUpdate(self, name, exact=False):
         args = self.getGroupPackages(name)
         ret = 0
         for pkgname in args:
-            ret |= self.update(pkgname)
+            ret |= self.update(pkgname, exact)
         return ret
 
-    def remove(self, name):
-        ret = self.__handleBestPkg("remove", self.pydb.searchPkgs([name, ]))
-        if self.has_args and not ret:
-            log.info1("No match for argument: %s", name)
+    def remove(self, name, exact=False):
+        if exact:
+            pkglist = self.pydb.getPkgsByName(name)
+        else:
+            pkglist = self.pydb.searchPkgs([name])
+        ret = self.__handleBestPkg("remove", pkglist)
         return ret
 
-    def groupRemove(self, name):
+    def groupRemove(self, name, exact=False):
         args = self.getGroupPackages(name)
         ret = 0
         for pkgname in args:
-            ret |= self.remove(pkgname)
+            ret |= self.remove(pkgname, exact)
         return ret
 
     def __readPackage(self, name):
@@ -572,9 +567,12 @@ class RpmYum:
         log.info3("%s: Package excluded because of arch incompatibility", name)
         return None
 
-    def __findPkgs(self, name):
+    def __findPkgs(self, name, exact=False):
         if name[0] != "/":
-            return self.repos.searchPkgs([name])
+            if exact:
+                return self.repos.getPkgsByName(name)
+            else:
+                return self.repos.searchPkgs([name])
         else:
             return self.repos.searchFilenames(name)
 
@@ -667,7 +665,7 @@ class RpmYum:
                 ret |= r
         return ret
 
-    def runArgs(self, args):
+    def runArgs(self, args, exact=False):
         """Find all packages that match the args and run the given command on
         them.
 
@@ -726,7 +724,9 @@ class RpmYum:
         for name in new_args:
             # We call our operation function which will handle all the
             # details for each specific case.
-            op_func(name)
+            ret = op_func(name, exact)
+            if self.has_args and not ret:
+                log.info1("No match for argument: %s", name)
         if self.config.timer:
             log.info2("runArgs() took %s seconds", (clock() - time1))
         self._generateTransactionState()
