@@ -62,25 +62,25 @@ class RpmResolver:
         if config.checkinstalled == 0:
             self.installed_unresolved_file_requires = self.getUnresolvedFileRequires()
         else:
-            self.check_installs = self.database.getPkgs()
+            self.check_installs = set(self.database.getPkgs())
 
     # ----
 
     def clear(self):
         """Clear all changed data."""
 
-        self.installs = [ ] # Added RpmPackage's
-        self.check_installs = [ ]
+        self.installs = set() # Added RpmPackage's
+        self.check_installs = set()
         # new RpmPackage
         # => ["originally" installed RpmPackage removed by update]
         self.updates = { }
-        self.erases = [ ] # Removed RpmPackage's
-        self.check_erases = [ ]
+        self.erases = set() # Removed RpmPackage's
+        self.check_erases = set()
         self.check_file_requires = False
         # new RpmPackage =>
         # ["originally" installed RpmPackage obsoleted by update]
         self.obsoletes = { }
-        self.installed_unresolved_file_requires = []
+        self.installed_unresolved_file_requires = set()
     # ----
 
 
@@ -118,10 +118,9 @@ class RpmResolver:
                     return ret
 
         if not self.isInstalled(pkg):
-            self.installs.append(pkg)
-        if pkg in self.erases:
-            self.erases.remove(pkg)
-        self.check_installs.append(pkg)
+            self.installs.add(pkg)
+        self.erases.discard(pkg)
+        self.check_installs.add(pkg)
 
         self.database.addPkg(pkg)
 
@@ -134,13 +133,12 @@ class RpmResolver:
         # get obsoletes
         # Valid only during OP_UPDATE: list of RpmPackage's that will be
         # obsoleted by the current update
-        self.pkg_obsoletes = [ ]
+        self.pkg_obsoletes = set()
         for u in pkg["obsoletes"]:
             s = self.database.searchDependency(u[0], u[1], u[2])
             for r in s:
                 if r["name"] != pkg["name"]:
-                    self.pkg_obsoletes.append(r)
-        normalizeList(self.pkg_obsoletes)
+                    self.pkg_obsoletes.add(r)
 
         # update package
 
@@ -273,17 +271,15 @@ class RpmResolver:
             return self.NOT_INSTALLED
 
         if self.isInstalled(pkg):
-            self.erases.append(pkg)
-        if pkg in self.installs:
-            self.installs.remove(pkg)
-        if pkg in self.check_installs:
-            self.check_installs.remove(pkg)
+            self.erases.add(pkg)
+        self.installs.discard(pkg)
+        self.check_installs.discard(pkg)
         if pkg in self.updates:
             del self.updates[pkg]
 
         if pkg in self.obsoletes:
             del self.obsoletes[pkg]
-        self.check_erases.append(pkg)
+        self.check_erases.add(pkg)
         self.check_file_requires = True
 
         self.database.removePkg(pkg)
@@ -581,10 +577,10 @@ class RpmResolver:
     def getUnresolvedFileRequires(self):
         db = self.database
         filereqs = db.getFileRequires()
-        result = []
+        result = set()
         for myfile in filereqs:
             if not db.searchDependency(myfile, 0, ""):
-                result.append(myfile)
+                result.add(myfile)
         return result
 
     # ----
@@ -666,7 +662,7 @@ class RpmResolver:
 
     def iterUnresolvedDependencies(self):
         """only check changes done to the database"""
-        for pkg in self.check_erases[:]:
+        for pkg in list(self.check_erases):
             # check if provides are required and not provided by another
             # package
             ok = True
@@ -683,7 +679,7 @@ class RpmResolver:
                 self.check_erases.remove(pkg)
 
         # check new packages
-        for pkg in self.check_installs[:]:
+        for pkg in list(self.check_installs):
             ok = True
             for u in pkg["requires"]:
                 if u[0][:7] == "rpmlib(": # drop rpmlib requirements
