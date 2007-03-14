@@ -51,8 +51,16 @@ USEYUM = False # disable yum metadata parser for now
                # as it messes up pre requirements
 
 import sqlitecompat as sqlite3
+from pyrpm.hashlist import HashList
 
 class SqliteRpmPackage(package.RpmPackage):
+
+    CACHE = {
+        'requires' : HashList(),
+        'provides' : HashList(),
+        'conflicts' : HashList(),
+        }
+    CACHESIZE = 30
 
     def __init__(self, config, source, verify=None, hdronly=None, db=None):
         self.filesloaded = False
@@ -73,7 +81,18 @@ class SqliteRpmPackage(package.RpmPackage):
     def __getitem__(self, name):
         if dict.has_key(self, name):
             return dict.get(self, name)
-        if name in ('requires','provides','conflicts','obsoletes'):
+        if name in self.CACHE:
+            if self.CACHE[name].has_key(self):
+                result = self.CACHE[name][self]
+                del self.CACHE[name][self] #  move to the end
+                self.CACHE[name][self] = result
+                return result
+            deps = self.yumrepo.getDependencies(name, self.pkgKey)
+            if len(self.CACHE[name]) > self.CACHESIZE:
+                del self.CACHE[name][0] # remove first entry
+            self.CACHE[name][self] = deps
+            return deps
+        if name in ('obsoletes', 'requires','provides','conflicts'):
             deps = self.yumrepo.getDependencies(name, self.pkgKey)
             self[name] = deps
             return deps
@@ -350,6 +369,7 @@ class SqliteRepoDB(repodb.RpmRepoDB):
         # Create indexes for faster searching
         cur.execute("CREATE INDEX packagename ON packages (name)")
         cur.execute("CREATE INDEX providesname ON provides (name)")
+        cur.execute("CREATE INDEX requiresname ON requires (name)")
         cur.execute("CREATE INDEX packageId ON packages (pkgId)")
         self._primarydb.commit()
 
@@ -715,6 +735,17 @@ class SqliteRepoDB(repodb.RpmRepoDB):
         cur.execute('SELECT pkgKey FROM packages WHERE name=?', (name,))
         result = [self.getPkgByKey(ob['pkgKey']) for ob in cur.fetchall()]
         return filter(None, result)
+
+    def getPkgsFileRequires(self):
+        cur = self._primarydb.cursor()
+        cur.execute('SELECT pkgKey, name FROM requires WHERE name LIKE "/%"')
+        result = {}
+        for ob in cur.fetchall():
+            pkg = self.getPkgByKey(ob[0])
+            if pkg is None:
+                continue
+            result.setdefault(pkg, [ ]).append(ob[1])
+        return result
 
     def getFilenames(self):
         raise NotImplementedError
