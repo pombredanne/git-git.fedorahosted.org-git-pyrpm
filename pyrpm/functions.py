@@ -686,7 +686,7 @@ def int2str(val, binary=True):
 def _uriToFilename(uri):
     """Convert a file:/ URI or a local path to a local path."""
 
-    if not uri.startswith("file://"):
+    if not uri.startswith("file:/"):
         filename = uri
     else:
         filename = uri[5:]
