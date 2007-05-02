@@ -541,6 +541,9 @@ class RpmYum:
 
                 # Filter packages with lower versions from our final list
                 l = self._filterPkgVersion(ipkg, pkgnamearchhash[name][arch])
+                if len(l) == 0:
+                    pkgnamearchhash[name][arch] = []
+                    continue
                 # Find the best matching package for the given list of packages
                 # and archs.
                 r = self.__handleBestPkg("update", l, march,
@@ -1274,8 +1277,9 @@ class RpmYum:
         ret = 0
         if not self.autoerase:
             return 0
-        for (old_pkg, new_pkg) in self.opresolver.getObsoleteConflicts():
-            self.__doAutoerase(new_pkg)
+        for (old_pkg, new_pkgs) in self.opresolver.getObsoleteConflicts().iteritems():
+            for obsolete, new_pkg in new_pkgs:
+                self.__doAutoerase(new_pkg)
             ret = 1
         return ret
 
