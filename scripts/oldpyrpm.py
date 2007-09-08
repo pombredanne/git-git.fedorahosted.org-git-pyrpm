@@ -441,7 +441,7 @@ class PrintHash:
             npos = self.hashlength
         else:
             self.num += 1
-            npos = (self.num * self.hashlength) / self.numobjects
+            npos = (self.num * self.hashlength) // self.numobjects
             # In case we call .nextObject() too often:
             if npos > self.hashlength:
                 npos = self.hashlength
@@ -1263,10 +1263,12 @@ def writeHeader(pkg, tags, taghash, region, skip_tags, useinstall, rpmgroup):
             pad = (4 - (offset % 4)) % 4
         elif ttype == RPM_STRING:
             count = 1
+            #PY3: data = value + b"\x00"
             data = "%s\x00" % value
         elif ttype == RPM_STRING_ARRAY or ttype == RPM_I18NSTRING:
             # python-only
             data = "".join( [ "%s\x00" % value[i] for i in xrange(count) ] )
+            #PY3: data = data.encode()
             # python-only-end
             # pyrex-code
             #k = []
@@ -1286,6 +1288,7 @@ def writeHeader(pkg, tags, taghash, region, skip_tags, useinstall, rpmgroup):
             pad = (8 - (offset % 8)) % 8
         if pad:
             offset += pad
+            #PY3: store.append(b"\x00" * pad)
             store.append("\x00" * pad)
         store.append(data)
         index = pack("!4I", tagnum, ttype, offset, count)
@@ -1305,7 +1308,9 @@ def writeHeader(pkg, tags, taghash, region, skip_tags, useinstall, rpmgroup):
         del pkg["dirindexes"]
         del pkg["dirnames"]
     indexNo = len(stags1)
+    #PY3: store = b"".join(store)
     store = "".join(store)
+    #PY3: indexdata = b"".join(indexdata)
     indexdata = "".join(indexdata)
     return (indexNo, len(store), indexdata, store)
 
@@ -1824,6 +1829,7 @@ class ReadRpm: # pylint: disable-msg=R0904
             elif ttype == RPM_STRING_ARRAY or ttype == RPM_I18NSTRING:
                 data = []
                 for _ in xrange(count):
+                    #PY3: end = fmt2.index(b"\x00", offset)
                     end = fmt2.index("\x00", offset)
                     data.append(fmt2[offset:end])
                     offset = end + 1
@@ -1876,6 +1882,7 @@ class ReadRpm: # pylint: disable-msg=R0904
                 self.printErr("no rpm magic found")
                 #print "wrong lead: %s" % b2a_hex(leaddata[:4])
                 return 1
+            #PY3: self.issrc = (leaddata[7] == b"\x01")
             self.issrc = (leaddata[7] == "\x01")
             if self.verify:
                 self.__verifyLead(leaddata)
@@ -2434,7 +2441,7 @@ class ReadRpm: # pylint: disable-msg=R0904
             if (tag != 61 or (-offset % 16 != 0) or
                 ttype != RPM_BIN or count != 16):
                 return None
-            indexNo = (-offset - 16) / 16
+            indexNo = (-offset - 16) // 16
             fmt = self.hdrdata[3][16:(indexNo + 1) * 16]
             fmt2 = self.hdrdata[4][:storeSize]
             return (indexNo, storeSize, fmt, fmt2)
@@ -2449,7 +2456,7 @@ class ReadRpm: # pylint: disable-msg=R0904
         if (tag != rpmtag["immutable"][0] or (-offset % 16 != 0) or
             ttype != RPM_BIN or count != 16):
             return None
-        indexNo = -offset / 16
+        indexNo = -offset // 16
         fmt = self.hdrdata[3][:indexNo * 16]
         fmt2 = self.hdrdata[4][:storeSize]
         return (indexNo, storeSize, fmt, fmt2)
@@ -2740,9 +2747,9 @@ class ReadRpm: # pylint: disable-msg=R0904
             if -offset % 16 != 0:
                 self.printErr("region has wrong offset")
             if (regiontag == rpmtag["immutable"][0] and
-                -offset / 16 != self.hdrdata[0]):
+                -offset // 16 != self.hdrdata[0]):
                 self.printErr("region tag %s only for partial header: %d, %d" \
-                    % (regiontag, self.hdrdata[0], -offset / 16))
+                    % (regiontag, self.hdrdata[0], -offset // 16))
 
         if self.nodigest:
             return 0
@@ -3188,7 +3195,7 @@ def bsearch(key, list2):
     l = 0
     u = len(list2)
     while l < u:
-        idx = (l + u) / 2
+        idx = (l + u) // 2
         r = cmp(key, list2[idx])
         if r < 0:
             u = idx
@@ -5994,6 +6001,7 @@ def readPackages(buildroot, rpmdbpath, verbose, keepdata=1, hdrtags=None):
             if verbose > 4:
                 print "Checking rpmdb with same endian order."
         else:
+            #PY3: if pack("=H", 0xdead) == b"\xde\xad":
             if pack("=H", 0xdead) == "\xde\xad":
                 swapendian = "<"
                 if verbose:
@@ -6042,6 +6050,7 @@ def readDb(swapendian, filename, dbtype="hash", dotid=None):
     while 1:
         if dotid:
             k = unpack("%sI" % swapendian, k)[0]
+        #PY3: if k == b"\x00":
         if k == "\x00":
             k = ""
         for i in xrange(0, len(v), 8):
