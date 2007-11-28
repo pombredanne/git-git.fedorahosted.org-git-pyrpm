@@ -430,7 +430,6 @@ class RpmPackage(RpmData):
                               "package %s", self.getNEVRA())
                     log.error(output, nofmt=1)
         self.__extract(db, pathPrefix=buildroot)
-        log.info2('')
         # Don't fail if the post script fails, just print out an error
         if self["postinprog"] != None and not self.config.noscripts:
             try:
@@ -500,7 +499,7 @@ class RpmPackage(RpmData):
                 continue
             rfi = rfilist[f]
             if buildroot:
-                f = buildroot + f
+                f = functions.brRealPath(buildroot, f)
             if stat.S_ISDIR(rfi.mode):
                 try:
                     os.rmdir(f)
@@ -540,10 +539,11 @@ class RpmPackage(RpmData):
             for dname in self["dirnames"]:
                 dname = functions.pathdirname(dname)
                 while len(dname) > 1:
+                    rdname = functions.brRealPath(buildroot, dname)
                     if db.numFileDuplicates(dname) == 0 and \
-                       os.path.isdir(buildroot + dname) and \
-                       len(os.listdir(buildroot + dname)) == 0:
-                        os.rmdir(buildroot + dname)
+                       os.path.isdir(rdname) and \
+                       len(os.listdir(rdname)) == 0:
+                        os.rmdir(rdname)
                     dname = functions.pathdirname(dname)
         # Hack to prevent errors for glibc and bash postunscripts for our
         # pyrpmcheckinstall script
@@ -655,7 +655,7 @@ class RpmPackage(RpmData):
 
         if rfi.flags & RPMFILE_GHOST:
             return
-        real_file = self.config.buildroot + filename
+        real_file = functions.brRealPath(self.config.buildroot, filename)
         if db is not None and stat.S_ISREG(rfi.mode):
             plist = db.searchFilenames(rfi.filename)
             for pkg in plist:
@@ -914,7 +914,9 @@ class RpmPackage(RpmData):
         if nfiles == 0:
             nfiles = 1
         if self.config.printhash:
-            log.info2("#"*(30-int(30*n/nfiles)), nl=0, nofmt=1)
+            log.info2("#"*(30-int(30*n/nfiles)), nofmt=1)
+        else:
+            log.info2('', nofmt=1)
         self.__handleRemainingHardlinks(useAttrs, pathPrefix, useSEcontext)
 
     def __verifyFileInstall(self, rfi, db, pathPrefix=''):
