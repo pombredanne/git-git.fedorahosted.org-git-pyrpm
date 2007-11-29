@@ -554,7 +554,7 @@ class RpmYum:
                                          do_obsolete=do_obsolete)
                 # In case we had a successfull update make sure we erase the
                 # package we just updated. Otherwise cross arch switches won't
-                # work properly.
+                # work properly with our current resolver.
                 if r > 0 and ipkg in self.opresolver.getDatabase():
                     self.opresolver.erase(ipkg)
                 ret |= r
@@ -1295,12 +1295,14 @@ class RpmYum:
                     ret = 1
         return ret
 
-    def __handleObsoletes(self, pkglist=[ ]):
+    def __handleObsoletes(self, pkglist=None):
         """Try to replace RpmPackage pkg in self.opresolver by a package
         obsoleting it, iterate until no obsoletes: applies.
 
         Return 1 if pkg was obsoleted, 0 if not."""
 
+        if pkglist is None:
+            pkglist = [ ]
         full = (len(pkglist) == 0)  # Flag if we need to do a full run
         obsoleted = False
         namehash = { }
