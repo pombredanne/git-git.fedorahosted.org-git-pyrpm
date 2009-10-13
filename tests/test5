@@ -4,7 +4,7 @@ import sys, os
 from pyrpm import *
 
 for i in sys.argv[1:]:
-    rpm = RpmPackage(rpmconfig, "file:/"+i)
+    rpm = RpmPackage(rpmconfig, "file://"+i)
     try:
         rpm.read(tags="version", ntags="name")
     except (IOError, ValueError), e:
@@ -12,5 +12,8 @@ for i in sys.argv[1:]:
         continue
 #    if type(rpm["epoch"]) != type(None) and type(rpm["epoch"]) != type(()):
 #        print type(rpm["epoch"])
-    print rpm.getNEVRA()
+    l = rpm["dirnames"][:]
+    l.sort()
+    for j in xrange(len(l)):
+        print rpm["dirnames"][j]+" "+l[j]
 # vim:ts=4:sw=4:showmatch:expandtab

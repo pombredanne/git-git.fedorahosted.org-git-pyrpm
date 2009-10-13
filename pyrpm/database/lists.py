@@ -138,7 +138,7 @@ class ProvidesList:
         sver = rpm.getEVR()
         if (RPMSENSE_EQUAL, sver, rpm) in list:
             list.remove( (RPMSENSE_EQUAL, sver, rpm) )
-        if len(list) == 0:
+        if len(list) == 0 and self.hash.has_key(name):
             del self.hash[name]
 
     def search(self, name, flag, version):

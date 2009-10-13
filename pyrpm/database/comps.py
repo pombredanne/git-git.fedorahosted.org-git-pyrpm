@@ -200,6 +200,10 @@ class RpmCompsXML:
                 self.__parseGroup(ip)
             elif tag == "grouphierarchy":
                 ret = self.__parseGroupHierarchy(ip)
+            elif tag == "blacklist" or tag == "whiteout":
+                for ev2, el2 in ip:
+                    if ev2 == "end" and (el2.tag == "blacklist" or el2.tag == "whiteout"):
+                        break
             else:
                 log.warning("Unknown entry in comps.xml: %s", tag)
                 return 0

@@ -302,6 +302,7 @@ rpmtag = {
     "filedependsn": (1144, RPM_INT32, None, 0),
     "classdict": (1142, RPM_STRING_ARRAY, None, 0),
     "dependsdict": (1145, RPM_INT32, None, 0),
+    "filedigestalgo": (5011, RPM_INT32, None, 0),
 
     # SELinux stuff, needed for some FC4-extras packages
     "policies": (1150, RPM_STRING_ARRAY, None, 0),
@@ -327,7 +328,9 @@ rpmtag = {
     "install_gpg": (262, RPM_BIN, None, 0),
     "install_badsha1_1": (264, RPM_STRING, None, 1),
     "install_badsha1_2": (265, RPM_STRING, None, 1),
+    "install_pubkeys": (266, RPM_STRING_ARRAY, None, 1),
     "install_dsaheader": (267, RPM_BIN, 16, 0),
+    "install_rsaheader": (268, RPM_BIN, 16, 0),
     "install_sha1header": (269, RPM_STRING, None, 0),
     "installtime": (1008, RPM_INT32, None, 0),
     "filestates": (1029, RPM_CHAR, None, 0),
@@ -359,6 +362,7 @@ rpmsigtag = {
     "header_signatures": (62, RPM_BIN, 16, 0), # content of this tag is unclear
     "payloadsize": (1007, RPM_INT32, 1, 0),
     "size_in_sig": (1000, RPM_INT32, 1, 0),
+    "rsaheader": (268, RPM_STRING, None, 0),
     "sha1header": (269, RPM_STRING, None, 0),
     "md5": (1004, RPM_BIN, 16, 0),
     # legacy entries in older rpm packages:

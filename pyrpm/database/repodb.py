@@ -18,7 +18,7 @@
 
 
 import lists, types
-import re, os, os.path, stat
+import sys, re, os, os.path, stat
 import memorydb
 from pyrpm.base import *
 from pyrpm.cache import NetworkCache
@@ -28,6 +28,15 @@ import pyrpm.package as package
 import pyrpm.openpgp as openpgp
 from pyrpm.logger import log
 from pyrpm.io import PyGZIP
+if sys.version_info < (2, 5):
+    import md5
+    import sha as sha1
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+else:
+    from hashlib import md5, sha1, sha256
 
 try:
     # python-2.5 layout:
@@ -186,9 +195,9 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
             if not self.repomd["primary"].has_key("location"):
                 return 0
             primary = self.repomd["primary"]["location"]
-            (csum, destfile) = self.nc.checksum(primary, "sha")
             if self.repomd["primary"].has_key("checksum") and \
                    csum == self.repomd["primary"]["checksum"]:
+                (csum, destfile) = self.nc.checksum(primary, "sha")
                 filename = destfile
             else:
                 filename = self.nc.cache(primary, 1)
@@ -498,20 +507,22 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
                     tmphash["location"] = loc
             elif tag.endswith("}checksum"):
                 type = props.get("type")
-                if type != "sha":
+                if type != "sha" and type != "sha256":
                     log.warning("Unsupported checksum type %s in repomd.xml "
                                 "for file %s", type, fname)
                     continue
                 tmphash["checksum"] = elem.text
+                tmphash["checksum.type"] = type
             elif tag.endswith("}timestamp"):
                 tmphash["timestamp"] = elem.text
             elif tag.endswith("}open-checksum"):
                 type = props.get("type")
-                if type != "sha":
+                if type != "sha" and type != "sha256":
                     log.warning("Unsupported open-checksum type %s in "
                                 "repomd.xml for file %s", type, fname)
                     continue
                 tmphash["open-checksum"] = elem.text
+                tmphash["open-checksum.type"] = type
         return rethash
 
     def __parsePackage(self, ip):
@@ -860,11 +871,9 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
         from pyrpm.io import getRpmIOFactory
         io = getRpmIOFactory(pkg.source)
         if self.config.checksum == "md5":
-            import md5
             s = md5.new()
         else:
-            import sha
-            s = sha.new()
+            s = sha1.new()
         io.updateDigestFromRange(s, 0, None)
         return s.hexdigest()
 
