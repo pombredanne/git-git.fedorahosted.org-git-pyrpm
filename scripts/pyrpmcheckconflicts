@@ -42,8 +42,8 @@ dirs = [ ]
 rpms = [ ]
 
 verbose = 0
-pyrpm.rpmconfig.noconflictcheck = 0
-pyrpm.rpmconfig.nofileconflictcheck = 0
+pyrpm.rpmconfig.noconflicts = 0
+pyrpm.rpmconfig.nofileconflicts = 0
 #pyrpm.rpmconfig.checkinstalled = 1
 
 if __name__ == '__main__':

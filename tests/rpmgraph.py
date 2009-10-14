@@ -90,9 +90,9 @@ if __name__ == '__main__':
             i += 1
             output = sys.argv[i]
         elif sys.argv[i] == "-nC":
-            pyrpm.rpmconfig.noconflictcheck = 1
+            pyrpm.rpmconfig.noconflicts = 1
         elif sys.argv[i] == "-nF":
-            pyrpm.rpmconfig.nofileconflictcheck = 1
+            pyrpm.rpmconfig.nofileconflicts = 1
         else:
             pargs.append(sys.argv[i])
         i += 1

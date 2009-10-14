@@ -94,9 +94,9 @@ if __name__ == '__main__':
         elif opt == "-p":
             prefix = val
         elif opt == "-C":
-            pyrpm.rpmconfig.noconflictcheck = 1
+            pyrpm.rpmconfig.noconflicts = 1
         elif opt == "-F":
-            pyrpm.rpmconfig.nofileconflictcheck = 1
+            pyrpm.rpmconfig.nofileconflicts = 1
         else:
             print "Unknown option '%s'" % opt
             usage()
