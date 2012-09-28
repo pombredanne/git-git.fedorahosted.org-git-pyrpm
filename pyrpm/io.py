@@ -81,6 +81,9 @@ class PyGZIP:
 
     myfileobj = None
 
+    def newdecompobj(self):
+        return zlib.decompressobj(-zlib.MAX_WBITS)
+
     def __init__(self, filename=None, mode=None,
                  compresslevel=9, fileobj=None):
         """Constructor for the GzipFile class.
@@ -129,7 +132,7 @@ class PyGZIP:
             # Set flag indicating start of a new member
             self._new_member = True
 
-            self.decompobj = zlib.decompressobj(-zlib.MAX_WBITS)
+            self.decompobj = self.newdecompobj()
             self.crcval = zlib.crc32("")
             self.buffer = []   # List of data blocks
             self.bufferlen = 0
@@ -406,7 +409,7 @@ class PyGZIP:
             raise IOError("Can't rewind in write mode")
         self.fileobj.seek(0)
         self._new_member = True
-        self.decompobj = zlib.decompressobj(-zlib.MAX_WBITS)
+        self.decompobj = self.newdecompobj()
         self.crcval = zlib.crc32("")
         self.buffer = []   # List of data blocks
         self.bufferlen = 0
@@ -490,6 +493,12 @@ class PyGZIP:
         else:
             raise StopIteration
 
+class PyLZMA(PyGZIP):
+    def newdecompobj(self):
+        import lzma
+        return lzma.LZMADecompressor()
+    def _read_gzip_header(self, ignore):
+        pass
 
 class CPIOFile:
     """ Read ASCII CPIO files. """
@@ -627,6 +636,7 @@ class RpmStreamIO(RpmIO):
         self.where = 0  # 0:lead 1:separator 2:sig 3:header 4:files
         self.idx = 0 # Current index
         self.hdr = {}
+        self.payloadcompressor = None
 
     def open(self, mode="r"):
         """Open self.source using the specified mode, set self.fd to non-None.
@@ -681,7 +691,10 @@ class RpmStreamIO(RpmIO):
                 pos = self._tell()
                 self.hdrdata = None
                 self.hdr = {}
-                cpiofd = PyGZIP(fileobj=self.fd)
+                if self.payloadcompressor == "xz":
+                    cpiofd = PyLZMA(fileobj=self.fd)
+                else:
+                    cpiofd = PyGZIP(fileobj=self.fd)
                 self.cpio = CPIOFile(cpiofd)
                 self.where = 4
                 # Nobody cares about gzipped payload length so far
@@ -695,7 +708,10 @@ class RpmStreamIO(RpmIO):
                     if v[1][i] >= MAXINT:
                         v[1][i] -= (MAXINT+MAXINT)
             # FIXME: unknown tags?
-            return (rpmtagname[v[0]], v[1])
+            tagname = rpmtagname[v[0]]
+            if tagname == "payloadcompressor":
+                self.payloadcompressor = v[1]
+            return (tagname, v[1])
         # Read/parse data files archive
         if self.where == 4 and not self.hdronly and self.cpio != None:
             self.cpio.skipToNextFile()
