@@ -525,10 +525,10 @@ class SqliteRepoDB(repodb.RpmRepoDB):
             return 1
         return 0
 
-    def readPrimary(self):
-        result = self.getDbFile("primary")
-        #self.readRpms()
-        return result
+    #def readPrimary(self):
+    #    result = self.getDbFile("primary")
+    #    #self.readRpms()
+    #    return result
 
     def _addFilesToPkg(self, name, epoch, version, release, arch, filelist,
                       filetypelist):

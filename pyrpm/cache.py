@@ -230,15 +230,18 @@ class NetworkCache:
         opos = self.pos[name]
         while True:
             sourceurl = self.__createSourceURI(uri, name)
+            print sourceurl, destfile, self.headers[name]
             try:
                 if force:
                     f = urlgrab(sourceurl, destfile, timeout=30.0,
                                 copy_local=copy_local,
-                                http_headers=self.headers[name])
+                                http_headers=self.headers[name],
+                                ssl_ca_cert='/usr/share/rhn/RHNS-CA-CERT')
                 else:
                     f = urlgrab(sourceurl, destfile, timeout=30.0,
                                 reget='check_timestamp', copy_local=copy_local,
-                                http_headers=self.headers[name])
+                                http_headers=self.headers[name],
+                                ssl_ca_cert='/usr/share/rhn/RHNS-CA-CERT')
             except Exception, e:
                 # urlgrab fails with invalid range for already completely
                 # transfered files, pretty strange to me to be honest... :)

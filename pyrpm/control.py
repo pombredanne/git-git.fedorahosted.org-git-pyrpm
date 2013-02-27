@@ -18,6 +18,7 @@
 
 
 import os
+import traceback
 from time import clock
 import package
 from resolver import *
@@ -290,6 +291,7 @@ class RpmController:
                     else:
                         log.info2("", nofmt=1) # newline may be after hashes
                 except (IOError, OSError, ValueError), e:
+                    traceback.print_exc()
                     log.error("Error installing %s: %s", pkg.getNEVRA(), e)
                     result = 0
                     break

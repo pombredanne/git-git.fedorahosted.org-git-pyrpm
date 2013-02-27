@@ -41,7 +41,7 @@ MainVarnames = ("cachedir", "reposdir", "debuglevel", "errorlevel",
         "timeout", "http_caching", "throttle", "bandwidth", "commands",
         "keepcache", "proxy", "proxy_username", "proxy_password", "pkgpolicy",
         "plugins", "pluginpath", "pluginconfpath", "metadata_expire",
-        "mirrorlist_expire")
+        "mirrorlist_expire", "installonly_limit")
 RepoVarnames = ("name", "baseurl", "mirrorlist", "enabled", "gpgcheck",
         "gpgkey", "exclude", "includepkgs", "enablegroups", "failovermethod",
         "keepalive", "timeout", "http_caching", "retries", "throttle",

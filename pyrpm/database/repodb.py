@@ -193,15 +193,17 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
         # the same we don't need to cache it again and can directly use it.
         if self.repomd.has_key("primary"):
             if not self.repomd["primary"].has_key("location"):
+                print "Error primary has no location"
                 return 0
             primary = self.repomd["primary"]["location"]
-            if self.repomd["primary"].has_key("checksum") and \
-                   csum == self.repomd["primary"]["checksum"]:
-                (csum, destfile) = self.nc.checksum(primary, "sha")
-                filename = destfile
-            else:
-                filename = self.nc.cache(primary, 1)
+#            if self.repomd["primary"].has_key("checksum"):
+#                (csum, destfile) = self.nc.checksum(primary, "sha")
+#                   csum == self.repomd["primary"]["checksum"]:
+#                filename = destfile
+#            else:
+            filename = self.nc.cache(primary, 1)
             if not filename:
+                print "Error can't find file for primary: "+primary
                 return 0
             try:
                 fd = PyGZIP(filename)
@@ -209,6 +211,7 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
                 ip = iter(ip)
             except IOError:
                 log.error("Couldn't parse primary.xml")
+                print "Error parsing primary.xml"
                 return 0
             self._parse(ip)
         return 1
@@ -238,12 +241,16 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
         #self.is_read = 1 # FIXME: write-only
         while True:
             if not self.readRepoMD():
+                print "Error self.readRepoMD()"
                 break
             if not self.readComps():
+                print "Error self.readComps()"
                 break
             if not self.readPrimary():
+                print "Error self.readPrimary()"
                 break
             if not self.readPGPKeys():
+                print "Error self.readPGPKeys()"
                 break
             self.is_read = 1 # FIXME: write-only
             return 1
@@ -412,7 +419,7 @@ class RpmRepoDB(memorydb.RpmMemoryDB):
                 try:
                     pkg = self.__parsePackage(ip)
                 except ValueError, e:
-                    log.warning("%s: %s", pkg.getNEVRA(), e)
+                    log.warning("%s: %s", ip, e)
                     continue
                 pkg.yumrepo = self
                 if self.comps != None:

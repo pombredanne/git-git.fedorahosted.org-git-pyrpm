@@ -88,7 +88,8 @@ class RpmConfig:
         # disabled it
         self.verifyallconfig = False
         self.keepcache = True           # Keep cached packages after install
-        self.selinux_enabled = (se_linux.is_selinux_enabled() >= 0)
+        self.selinux_enabled = False
+        #self.selinux_enabled = (se_linux.is_selinux_enabled() >= 0)
 
     def copy(self):                     # FIXME: not used
         return copy.deepcopy(self)

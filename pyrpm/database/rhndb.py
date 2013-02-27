@@ -47,15 +47,16 @@ class RhnRepoDB(JointDB):
         self.reponame = "rhnrepo"
         if not use_rhn:
             return
-        _ = rhnconfig.initUp2dateConfig()
+        up2date_cfg = rhnconfig.initUp2dateConfig()
         try:
-            _ = up2dateAuth.getLoginInfo()
+            login_info = up2dateAuth.getLoginInfo()
         except up2dateErrors.RhnServerException, e:
             raise IOError, "Failed to get login info from RHN Server."
         try:
             svrChannels = rhnChannel.getChannelDetails()
         except up2dateErrors.NoChannelsError:
             raise IOError, "Failed to get channels from RHN Server."
+        sslcacert = up2date_cfg['sslCACert']
         for channel in svrChannels: 
             rcdb = RhnChannelRepoDB(config, (channel['url']+'/GET-REQ/'+channel['label'], ), buildroot, channel['label'], nc)
             self.addDB(rcdb)
@@ -85,6 +86,11 @@ class RhnChannelRepoDB(SqliteRepoDB):
         self.nc.setHeaders(self.http_headers, channelname)
         self.nc.setCallback(self.__ncCallback, channelname)
         self.authtime = time.time() + int(float(self.http_headers['X-RHN-Auth-Expire-Offset']))
+        if self.http_headers['X-RHN-Auth-User-Id'] == '':
+            self.http_headers['X-RHN-Auth-User-Id'] = '\nX-libcurl-Empty-Header-Workaround: *'
+        self.http_headers['Pragma'] = 'no-cache'
+        self.http_headers['X-RHN-Transport-Capability'] = 'follow-redirects=3'
+
 
     def __setupRhnHttpHeaders(self):
         """ Set up self.http_headers with needed RHN X-RHN-blah headers """
@@ -102,6 +108,10 @@ class RhnChannelRepoDB(SqliteRepoDB):
                 log.error("Missing required login information for RHN: %s" % header)
                 raise ValueError
             self.http_headers[header] = li[header]
+        if self.http_headers['X-RHN-Auth-User-Id'] == '':
+            self.http_headers['X-RHN-Auth-User-Id'] = '\nX-libcurl-Empty-Header-Workaround: *'
+        self.http_headers['Pragma'] = 'no-cache'
+        self.http_headers['X-RHN-Transport-Capability'] = 'follow-redirects=3'
 
     def __ncCallback(self):
         t = time.time()
